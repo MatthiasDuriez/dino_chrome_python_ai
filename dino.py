@@ -9,7 +9,7 @@ pygame.font.init()
 
 DINO_IMG = [pygame.image.load(os.path.join("images/dino",'dino_3.png')),pygame.image.load(os.path.join("images/dino",'dino_4.png')),pygame.image.load(os.path.join("images/dino",'dino_7.png')),pygame.image.load(os.path.join("images/dino",'dino_8.png')),pygame.image.load(os.path.join("images/dino",'dino_6.png'))]
 CACTUS_IMG = [pygame.image.load(os.path.join("images/cacti","cacti_large_1.png"))]
-PTERA_IMG = [pygame.image.load(os.path.join("images/ptera","ptera_1.png"))]
+PTERA_IMG = [pygame.image.load(os.path.join("images/ptera","ptera_1.png")),pygame.image.load(os.path.join("images/ptera","ptera_1.png")),pygame.image.load(os.path.join("images/ptera","ptera_1.png"))]
 GROUND_IMG = pygame.image.load(os.path.join("images","ground.png"))
 BG_IMAGE = pygame.image.load(os.path.join("images","cloud.png"))
 
@@ -114,8 +114,12 @@ class Obstacle:
         self.passed = False;
         if self.type == 0:
             self.y = WIN_HEIGHT-90-self.img.get_height()
-        else:
-            self.y = WIN_HEIGHT-100-self.img.get_height()-50
+        elif self.type == 1:
+            self.y = WIN_HEIGHT-100-self.img.get_height()-40
+        elif self.type == 2:
+            self.y = WIN_HEIGHT-100-self.img.get_height()+20
+        elif self.type == 3:
+            self.y = WIN_HEIGHT-100-self.img.get_height()-150
 
     def move(self,game_speed):
         self.vel = self.VEL * game_speed
@@ -166,13 +170,22 @@ def obstacle_gen(obstacles):
         if(obstacles[1].x>WIN_WIDTH-400):
             return obstacles
         if(random.randrange(0,100)<=30):
-           obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(0,2))) 
+            if (random.randrange(0,3)<2):
+                obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),0)) 
+            else:
+                obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(1,4)))
     if len(obstacles) == 1:
         if(obstacles[0].x>WIN_WIDTH-400):
             return obstacles
-        obstacles.append(Obstacle(random.randrange(WIN_WIDTH+200,WIN_WIDTH+400),random.randrange(0,2))) 
+        if (random.randrange(0,3)<2):
+                obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),0)) 
+        else:
+            obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(1,4))) 
     if len(obstacles) == 0:
-        obstacles.append(Obstacle(random.randrange(WIN_WIDTH+100,WIN_WIDTH+300),random.randrange(0,2))) 
+        if (random.randrange(0,3)<2):
+            obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),0)) 
+        else:
+            obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(1,4))) 
     return obstacles
 def obstacle_delete(obstacles):
     rem = []
