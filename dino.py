@@ -3,13 +3,15 @@ import neat
 import time
 import os
 import random
+
+import visualize
 pygame.font.init()
 
 
 
 DINO_IMG = [pygame.image.load(os.path.join("images/dino",'dino_3.png')),pygame.image.load(os.path.join("images/dino",'dino_4.png')),pygame.image.load(os.path.join("images/dino",'dino_7.png')),pygame.image.load(os.path.join("images/dino",'dino_8.png'))]
 CACTUS_IMG = [pygame.image.load(os.path.join("images/cacti","cacti_large_1.png"))]
-PTERA_IMG = [pygame.image.load(os.path.join("images/ptera","ptera_1.png"))]
+PTERA_IMG = [pygame.image.load(os.path.join("images/ptera","ptera_1.png")),pygame.image.load(os.path.join("images/ptera","ptera_1.png")),pygame.image.load(os.path.join("images/ptera","ptera_1.png"))]
 GROUND_IMG = pygame.image.load(os.path.join("images","ground.png"))
 BG_IMAGE = pygame.image.load(os.path.join("images","cloud.png"))
 
@@ -59,8 +61,10 @@ class Dino:
             self.squating = False
         if self.jumping and not self.jumped:
             self.jump()
+            return -0.5
         if self.squating and not self.jumped:
             self.squat()
+        return 0
         
 
     def move(self):
@@ -116,8 +120,12 @@ class Obstacle:
         self.passed = False;
         if self.type == 0:
             self.y = WIN_HEIGHT-90-self.img.get_height()
-        else:
+        elif self.type == 1:
             self.y = WIN_HEIGHT-100-self.img.get_height()-50
+        elif self.type == 2:
+            self.y = WIN_HEIGHT-100-self.img.get_height()+20
+        elif self.type == 3:
+            self.y = WIN_HEIGHT-100-self.img.get_height()-170
 
     def move(self,game_speed):
         self.vel = self.VEL * game_speed
@@ -167,13 +175,22 @@ def obstacle_gen(obstacles):
         if(obstacles[1].x>WIN_WIDTH-400):
             return obstacles
         if(random.randrange(0,100)<=30):
-           obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(0,2))) 
+            if (random.randrange(0,3)<2):
+                obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),0)) 
+            else:
+                obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(1,4)))
     if len(obstacles) == 1:
         if(obstacles[0].x>WIN_WIDTH-400):
             return obstacles
-        obstacles.append(Obstacle(random.randrange(WIN_WIDTH+200,WIN_WIDTH+400),random.randrange(0,2))) 
+        if (random.randrange(0,3)<2):
+                obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),0)) 
+        else:
+            obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(1,4))) 
     if len(obstacles) == 0:
-        obstacles.append(Obstacle(random.randrange(WIN_WIDTH+100,WIN_WIDTH+300),random.randrange(0,2))) 
+        if (random.randrange(0,3)<2):
+            obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),0)) 
+        else:
+            obstacles.append(Obstacle(random.randrange(WIN_WIDTH+300,WIN_WIDTH+600),random.randrange(1,4))) 
     return obstacles
 def obstacle_delete(obstacles):
     rem = []
@@ -198,8 +215,10 @@ def draw_window(win,dinos,ground,obstacles,score,game_speed,gen,alive_nb):
     text = STAT_FONT.render("Alive "+ str(alive_nb),1 , (0,0,0))
     win.blit(text,(WIN_WIDTH-10-text.get_width(),10))
     ground.draw(win)
-    for dino in dinos:
+    for x,dino in enumerate(dinos):
         dino.draw(win)
+        if x == 10:
+            break
     pygame.display.update()
 
 def main(genomes,config):
@@ -249,7 +268,9 @@ def main(genomes,config):
             for obstacle in obstacles:
                 for x,dino in enumerate(dinos):
                     if obstacle.collide(dino):
-                        ge[x].fitness -= 1
+                        ge[x].fitness -= 2
+                        if obstacle.type == 3:
+                            ge[x].fitness -=2
                         dinos.pop(x)
                         nets.pop(x)
                         ge.pop(x)
@@ -263,12 +284,80 @@ def main(genomes,config):
             ge[x].fitness+=0.05
             dino.move()
             if(len(obstacles)>0):
-                output = nets[x].activate((dino.y, abs(dino.y - obstacles[obstacle_ind].y),game_speed,obstacles[obstacle_ind].x))
-                dino.input_handler(output[0],output[1])
+                output = nets[x].activate((dino.y, obstacles[obstacle_ind].y,game_speed,obstacles[obstacle_ind].x))
+                ge[x].fitness+=dino.input_handler(output[0],output[1])
+        obstacles = obstacle_delete(obstacles)
+        ground.move(game_speed)
+        #draw_window(win,dinos,ground,obstacles,score,game_speed,GEN,len(dinos))
+    
+def main_window(genomes,config):
+    global GEN
+    GEN +=1
+    nets = []
+    ge = []
+    dinos = []
+    for _,g in genomes:
+        net = neat.nn.FeedForwardNetwork.create(g, config)
+        nets.append(net)
+        dinos.append(Dino(20))
+        g.fitness = 0
+        ge.append(g)
+    clock_tick_count = 0
+    win = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
+    win.fill([255,255,255])
+    clock = pygame.time.Clock()
+    ground = Ground(WIN_HEIGHT-100)
+    died = False
+    run = True
+    obstacles = [Obstacle(WIN_WIDTH+10,0)]
+    score = 0
+    game_speed = 1
+    
+    while run:
+        clock.tick(120)
+        clock_tick_count += 1
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+                quit()
+            #dino.input_handler(pygame.key.get_pressed())
+        obstacle_ind = 0
+        if len(dinos)>0:
+            if len(obstacles)>1 and dinos[0].x > round(obstacles[0].x) + obstacles[0].img.get_width():
+                obstacle_ind = 1
+        else:
+            run = False
+            break
+        rem = []
+        score+=1
+        if (score%20==0):
+            game_speed+=0.01
+        if len(obstacles)>0:
+            for obstacle in obstacles:
+                for x,dino in enumerate(dinos):
+                    if obstacle.collide(dino):
+                        ge[x].fitness -= 2
+                        if obstacle.type == 3:
+                            ge[x].fitness -=2
+                        dinos.pop(x)
+                        nets.pop(x)
+                        ge.pop(x)
+                obstacle.move(game_speed)
+        
+        
+        if clock_tick_count==60:
+            obstacles = obstacle_gen(obstacles)
+            clock_tick_count=0
+        for x,dino in enumerate(dinos):
+            ge[x].fitness+=0.05
+            dino.move()
+            if(len(obstacles)>0):
+                output = nets[x].activate((dino.y, obstacles[obstacle_ind].y,game_speed,obstacles[obstacle_ind].x))
+                ge[x].fitness+=dino.input_handler(output[0],output[1])
         obstacles = obstacle_delete(obstacles)
         ground.move(game_speed)
         draw_window(win,dinos,ground,obstacles,score,game_speed,GEN,len(dinos))
-
 
 def run(config_path):
     config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
@@ -279,8 +368,12 @@ def run(config_path):
     p.add_reporter(neat.StdOutReporter(True))
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
-
+    
+    #This is running up to 50 generations
     winner = p.run(main,50)
+    visualize.draw_net(config, winner,True)
+    visualize.plot_stats(stats)
+    visualize.plot_species(stats)
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
