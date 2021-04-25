@@ -65,11 +65,11 @@ class Dino:
         if self.jumped==True:
             self.y -= self.vel*2
             self.vel -= 0.6
-            if self.y >= self.base:
-                self.jumped=False
-                self.vel = self.VEL
-                self.y = self.base
-                self.jumping = False
+        if self.y >= self.base:
+            self.jumped=False
+            self.vel = self.VEL
+            self.y = self.base
+            self.jumping = False
             # self.tick_count += 1
             # d = self.vel*self.tick_count + 1.5*self.tick_count**1.9
             # if d >= 50:
