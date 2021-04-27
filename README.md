@@ -36,4 +36,5 @@ You need to have python installed.
    pip install graphviz
    pip install -U matplotlib
    ```
+![game Screenshot](https://github.com/MatthiasDuriez/dino_chrome_python_ai/blob/bdb490b193a7fa562dff27d2b8d5ae7e1d883ea8/images/screenshot.png)
 
